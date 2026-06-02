@@ -12,11 +12,11 @@
 # Installation:
 #
 #   amc package add datetime                  # via curated index
-#   amc package add github.com/amalgame-lang/amalgame-datetime@v0.2.0
+#   amc package add github.com/amalgame-lang/amalgame-datetime@v0.2.1
 
 [package]
 name              = "amalgame-datetime"
-version           = "0.2.0"
+version           = "0.2.1"
 license           = "Apache-2.0"
 description       = "Pure-Amalgame datetime facade: Instant + Duration + Stopwatch + ISO 8601."
 authors           = ["Bastien Mouget"]
