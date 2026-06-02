@@ -176,5 +176,29 @@ public class Program {
         } else {
             Console.WriteLine("[FAIL] Stopwatch reset")
         }
+
+        // ── Sleep actually waits (measured by the monotonic clock) ──
+        // Sleep 20ms; the elapsed monotonic time should be at least
+        // ~15ms (scheduler slack) and comfortably under 2s.
+        let swS: Stopwatch = new Stopwatch()
+        DateTime.SleepMillis(20)
+        let slept: int = swS.Elapsed().Millis()
+        if (slept >= 15 && slept < 2000) {
+            Console.WriteLine("[PASS] SleepMillis waits")
+        } else {
+            Console.WriteLine("[FAIL] SleepMillis waits got: " + String_FromInt(slept))
+        }
+
+        // Duration-typed sleep + zero/negative no-op (returns at once).
+        let swS2: Stopwatch = new Stopwatch()
+        DateTime.Sleep(Duration.FromMillis(20))
+        DateTime.SleepMillis(0)
+        DateTime.SleepMillis(-5)
+        let slept2: int = swS2.Elapsed().Millis()
+        if (slept2 >= 15 && slept2 < 2000) {
+            Console.WriteLine("[PASS] Sleep(Duration) + no-op")
+        } else {
+            Console.WriteLine("[FAIL] Sleep(Duration) + no-op got: " + String_FromInt(slept2))
+        }
     }
 }

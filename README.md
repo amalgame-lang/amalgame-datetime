@@ -2,8 +2,8 @@
 
 Pure-Amalgame datetime facade for [Amalgame](https://github.com/amalgame-lang/Amalgame).
 **Instant** (nanosecond precision, UTC-only) + **Duration** (signed
-i64 nanoseconds) + **Stopwatch** over the monotonic clock + ISO 8601
-format/parse.
+i64 nanoseconds) + **Stopwatch** over the monotonic clock + **Sleep**
+(thread sleep) + ISO 8601 format/parse.
 
 Originally bundled in amc's `src/stdlib/datetime.am`; extracted into
 this external package as part of the framework split (post-v0.7.5).
@@ -47,6 +47,10 @@ class Program {
         for i in 0..10000 { sum = sum + i }
         let took: Duration = sw.Elapsed()
         Console.WriteLine(took.Format())
+
+        // ── Sleep ───────────────────────────────────
+        DateTime.SleepMillis(500)             // half a second
+        DateTime.Sleep(Duration.FromSeconds(1))
     }
 }
 ```
@@ -56,7 +60,8 @@ See `facade.am` for the full API — `Instant.Now` /
 `.Add` / `.Subtract` / `.Since` / `.IsBefore` / `.IsAfter` /
 `.Equals`, `Duration.From{Hours,Minutes,Seconds,Millis,Nanos}` /
 `.Plus` / `.Minus` / `.Times` / `.Negate` / `.Format`,
-`Stopwatch.Elapsed` / `.Reset`.
+`Stopwatch.Elapsed` / `.Reset`,
+`DateTime.Sleep(Duration)` / `.SleepMillis(ms)` / `.SleepSeconds(s)`.
 
 ## Tests
 
