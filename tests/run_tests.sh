@@ -200,6 +200,8 @@ run_test "dur fmt min"                  "[PASS] dur fmt min"
 run_test "dur fmt hour"                 "[PASS] dur fmt hour"
 run_test "Stopwatch elapsed"            "[PASS] Stopwatch elapsed"
 run_test "Stopwatch reset"              "[PASS] Stopwatch reset"
+run_test "SleepMillis waits"            "[PASS] SleepMillis waits"
+run_test "Sleep(Duration) + no-op"      "[PASS] Sleep(Duration) + no-op"
 
 # ── Cleanup the symlinked build dir to leave the tree clean ──
 rm -f "$WORK_BUILD_DIR"

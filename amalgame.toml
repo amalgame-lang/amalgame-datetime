@@ -2,20 +2,21 @@
 #
 # Pure-Amalgame datetime facade — Instant (nanosecond precision,
 # UTC-only), Duration (signed i64 nanoseconds), Stopwatch over the
-# monotonic clock, ISO 8601 format + parse via Hinnant calendar
-# algorithms (civil_from_days / days_from_civil). Two `@c { … }`
-# blocks only — clock syscalls (`clock_gettime` / `GetSystemTime`).
+# monotonic clock, Sleep (nanosleep), ISO 8601 format + parse via
+# Hinnant calendar algorithms (civil_from_days / days_from_civil).
+# Three `@c { … }` blocks only — clock + sleep syscalls
+# (`clock_gettime` / `GetSystemTime` / `nanosleep` / `Sleep`).
 # Originally bundled in amc's src/stdlib/datetime.am; extracted
 # into this external package as part of the framework split.
 #
 # Installation:
 #
 #   amc package add datetime                  # via curated index
-#   amc package add github.com/amalgame-lang/amalgame-datetime@v0.1.0
+#   amc package add github.com/amalgame-lang/amalgame-datetime@v0.2.0
 
 [package]
 name              = "amalgame-datetime"
-version           = "0.1.0"
+version           = "0.2.0"
 license           = "Apache-2.0"
 description       = "Pure-Amalgame datetime facade: Instant + Duration + Stopwatch + ISO 8601."
 authors           = ["Bastien Mouget"]
