@@ -180,25 +180,30 @@ public class Program {
         // ── Sleep actually waits (measured by the monotonic clock) ──
         // Sleep 20ms; the elapsed monotonic time should be at least
         // ~15ms (scheduler slack) and comfortably under 2s.
+        // (Chain split across two lets — no `.Elapsed().Millis()` —
+        // so the sample compiles on the >=0.7.7 floor the CI tests.)
         let swS: Stopwatch = new Stopwatch()
         DateTime.SleepMillis(20)
-        let slept: int = swS.Elapsed().Millis()
+        let sleptD: Duration = swS.Elapsed()
+        let slept:  int      = sleptD.Millis()
         if (slept >= 15 && slept < 2000) {
             Console.WriteLine("[PASS] SleepMillis waits")
         } else {
             Console.WriteLine("[FAIL] SleepMillis waits got: " + String_FromInt(slept))
         }
 
-        // Duration-typed sleep + zero/negative no-op (returns at once).
+        // Duration.Sleep() + zero/negative no-op (returns at once).
         let swS2: Stopwatch = new Stopwatch()
-        DateTime.Sleep(Duration.FromMillis(20))
+        let d20:  Duration  = Duration.FromMillis(20)
+        d20.Sleep()
         DateTime.SleepMillis(0)
         DateTime.SleepMillis(-5)
-        let slept2: int = swS2.Elapsed().Millis()
+        let slept2D: Duration = swS2.Elapsed()
+        let slept2:  int      = slept2D.Millis()
         if (slept2 >= 15 && slept2 < 2000) {
-            Console.WriteLine("[PASS] Sleep(Duration) + no-op")
+            Console.WriteLine("[PASS] Duration.Sleep + no-op")
         } else {
-            Console.WriteLine("[FAIL] Sleep(Duration) + no-op got: " + String_FromInt(slept2))
+            Console.WriteLine("[FAIL] Duration.Sleep + no-op got: " + String_FromInt(slept2))
         }
     }
 }
