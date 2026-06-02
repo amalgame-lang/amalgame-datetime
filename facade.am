@@ -88,11 +88,13 @@ public class DateTime {
         }
     }
 
-    // Suspend the current thread. The third (and last) surviving @c
-    // primitive: AM has no sleep syscall of its own. `nanosleep` on
-    // POSIX, `Sleep` (millisecond granularity, so we round up) on
-    // Windows. Private — callers use the typed wrappers below.
-    private static void sleepNanos(nanos: int) {
+    // Suspend the current thread for `nanos` nanoseconds. The third
+    // (and last) surviving @c primitive: AM has no sleep syscall of
+    // its own. `nanosleep` on POSIX, `Sleep` (millisecond
+    // granularity, so we round up) on Windows. Zero / negative is a
+    // no-op. For a Duration-typed call, see `Duration.Sleep()`.
+    public static void SleepNanos(nanos: int) {
+        if (nanos <= 0) { return }
         @c {
         #ifdef _WIN32
             if (nanos > 0) { Sleep((DWORD)((nanos + 999999LL) / 1000000LL)); }
@@ -105,24 +107,14 @@ public class DateTime {
         }
     }
 
-    // Sleep for a Duration. Zero / negative durations return at once.
-    //   DateTime.Sleep(Duration.FromMillis(500))
-    public static void Sleep(d: Duration) {
-        let ns: int = d.Nanos()
-        if (ns <= 0) { return }
-        DateTime.sleepNanos(ns)
-    }
-
     // Convenience: sleep `ms` milliseconds.
     public static void SleepMillis(ms: int) {
-        if (ms <= 0) { return }
-        DateTime.sleepNanos(ms * 1000000)
+        DateTime.SleepNanos(ms * 1000000)
     }
 
     // Convenience: sleep `s` seconds.
     public static void SleepSeconds(s: int) {
-        if (s <= 0) { return }
-        DateTime.sleepNanos(s * 1000000000)
+        DateTime.SleepNanos(s * 1000000000)
     }
 
     // The parse-error sentinel is INT64_MIN — well outside the
@@ -475,6 +467,15 @@ public class Duration {
 
     public bool IsNegative() {
         return this.nanos < 0
+    }
+
+    // Suspend the current thread for this Duration. Zero / negative
+    // returns at once. The Duration-typed counterpart to
+    // DateTime.SleepMillis / .SleepSeconds:
+    //   let d: Duration = Duration.FromMillis(500)
+    //   d.Sleep()
+    public void Sleep() {
+        DateTime.SleepNanos(this.nanos)
     }
 
     // Format: short Go-style. "0s" for zero, "Xns/us/ms" for

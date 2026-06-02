@@ -50,7 +50,8 @@ class Program {
 
         // ── Sleep ───────────────────────────────────
         DateTime.SleepMillis(500)             // half a second
-        DateTime.Sleep(Duration.FromSeconds(1))
+        let oneSec: Duration = Duration.FromSeconds(1)
+        oneSec.Sleep()                         // Duration-typed sleep
     }
 }
 ```
@@ -61,7 +62,8 @@ See `facade.am` for the full API — `Instant.Now` /
 `.Equals`, `Duration.From{Hours,Minutes,Seconds,Millis,Nanos}` /
 `.Plus` / `.Minus` / `.Times` / `.Negate` / `.Format`,
 `Stopwatch.Elapsed` / `.Reset`,
-`DateTime.Sleep(Duration)` / `.SleepMillis(ms)` / `.SleepSeconds(s)`.
+`DateTime.SleepNanos(ns)` / `.SleepMillis(ms)` / `.SleepSeconds(s)` /
+`Duration.Sleep()`.
 
 ## Tests
 
