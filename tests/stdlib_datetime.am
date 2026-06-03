@@ -100,6 +100,29 @@ public class Program {
             Console.WriteLine("[FAIL] Instant.Since")
         }
 
+        // ── HTTP date (RFC 1123) ───────────────────────
+        if (DateTime.FormatHttpDate(0) == "Thu, 01 Jan 1970 00:00:00 GMT") {
+            Console.WriteLine("[PASS] FormatHttpDate epoch")
+        } else {
+            Console.WriteLine("[FAIL] FormatHttpDate epoch got: " + DateTime.FormatHttpDate(0))
+        }
+        if (DateTime.FormatHttpDate(1735689600) == "Wed, 01 Jan 2025 00:00:00 GMT") {
+            Console.WriteLine("[PASS] FormatHttpDate 2025")
+        } else {
+            Console.WriteLine("[FAIL] FormatHttpDate 2025 got: " + DateTime.FormatHttpDate(1735689600))
+        }
+        let httpRt: int = DateTime.ParseHttpDate("Wed, 01 Jan 2025 00:00:00 GMT")
+        if (httpRt == 1735689600) {
+            Console.WriteLine("[PASS] ParseHttpDate")
+        } else {
+            Console.WriteLine("[FAIL] ParseHttpDate got: " + String_FromInt(httpRt))
+        }
+        if (DateTime.ParseHttpDate("garbage") == -1) {
+            Console.WriteLine("[PASS] ParseHttpDate rejects bad")
+        } else {
+            Console.WriteLine("[FAIL] ParseHttpDate rejects bad")
+        }
+
         // ── Comparison ─────────────────────────────────
         if (base.IsBefore(later) && later.IsAfter(base) && base.Equals(base)) {
             Console.WriteLine("[PASS] Instant comparison")
