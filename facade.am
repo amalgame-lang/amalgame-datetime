@@ -130,6 +130,152 @@ public class DateTime {
     public static bool IsParseError(nanos: int) {
         return nanos == DateTime.ParseErrorSentinel()
     }
+
+    // ── HTTP-date (RFC 7231 / RFC 1123) ──────────────────────────────
+    // FormatHttpDate(epochSecs) → "Sun, 06 Jun 2026 08:49:37 GMT", for
+    // HTTP Last-Modified / Expires / Date headers (also handy for cookie
+    // Expires + SMTP). Takes whole SECONDS since the epoch — matches
+    // filesystem mtime granularity (FormatIso takes nanos).
+    //
+    // The civil-date math is duplicated here as DateTime-local private
+    // helpers rather than calling DateTimeUtil: DateTime is declared
+    // BEFORE DateTimeUtil, and amc ≤ 0.7.x mis-forward-declares a
+    // cross-class call to a later class (conflicting C prototypes).
+    // Same-class calls are always safe, so we keep the floor at 0.7.7.
+    public static string FormatHttpDate(epochSecs: int) {
+        var secs: int = epochSecs
+        var days: int = secs / 86400
+        var sod:  int = secs - days * 86400
+        if (sod < 0) { days = days - 1; sod = sod + 86400 }
+        let ymd: List<int> = DateTime.httpCivilFromDays(days)
+        let hour:   int = sod / 3600
+        let minute: int = (sod / 60) % 60
+        let second: int = sod % 60
+        // 1970-01-01 was a Thursday; with Sun=0 that's index 4.
+        let wdRaw: int = days + 4
+        var wd: int = wdRaw % 7
+        if (wd < 0) { wd = wd + 7 }
+        let dow: string = DateTime.httpWeekdayName(wd)
+        let mon: string = DateTime.httpMonthName(ymd.Get(1))
+        let dS:  string = DateTime.httpPad(ymd.Get(2), 2)
+        let yS:  string = DateTime.httpPad(ymd.Get(0), 4)
+        let hS:  string = DateTime.httpPad(hour, 2)
+        let miS: string = DateTime.httpPad(minute, 2)
+        let sS:  string = DateTime.httpPad(second, 2)
+        return dow + ", " + dS + " " + mon + " " + yS + " " + hS + ":" + miS + ":" + sS + " GMT"
+    }
+
+    // ParseHttpDate(s) → epoch SECONDS, or -1 on malformation. Accepts
+    // the RFC 1123 form ("Wkd, DD Mon YYYY HH:MM:SS GMT") every modern
+    // client sends for If-Modified-Since. Legacy RFC 850 / asctime forms
+    // are rejected (-1) in v1.
+    public static int ParseHttpDate(s: string) {
+        let toks: List<string> = String_Split(String_Trim(s), " ")
+        if (toks.Count() < 5) { return -1 }
+        // toks = ["Wkd,", "DD", "Mon", "YYYY", "HH:MM:SS", ("GMT")]
+        let day:  int = String_ToInt(toks.Get(1))
+        let mon:  int = DateTime.httpMonthNum(toks.Get(2))
+        let year: int = String_ToInt(toks.Get(3))
+        if (mon < 1) { return -1 }
+        let tparts: List<string> = String_Split(toks.Get(4), ":")
+        if (tparts.Count() < 3) { return -1 }
+        let hh: int = String_ToInt(tparts.Get(0))
+        let mm: int = String_ToInt(tparts.Get(1))
+        let ss: int = String_ToInt(tparts.Get(2))
+        let days: int = DateTime.httpDaysFromCivil(year, mon, day)
+        return days * 86400 + hh * 3600 + mm * 60 + ss
+    }
+
+    // ── DateTime-local copies of the civil-date helpers (see note on
+    // FormatHttpDate for why these don't reuse DateTimeUtil). ─────────
+
+    static string httpPad(n: int, width: int) {
+        var out: string = String_FromInt(n)
+        while (String_Length(out) < width) { out = "0" + out }
+        return out
+    }
+
+    static List<int> httpCivilFromDays(days: int) {
+        let z: int = days + 719468
+        var era: int = 0
+        if (z >= 0) { era = z / 146097 } else { let zn: int = z - 146096; era = zn / 146097 }
+        let doe: int = z - era * 146097                                   // [0, 146096]
+        let doeNum: int = doe - doe / 1460 + doe / 36524 - doe / 146096
+        let yoe: int = doeNum / 365                                       // [0, 399]
+        let y: int = yoe + era * 400
+        let doy: int = doe - (365 * yoe + yoe / 4 - yoe / 100)            // [0, 365]
+        let mpNum: int = 5 * doy + 2
+        let mp: int = mpNum / 153                                         // [0, 11]
+        let dNum: int = 153 * mp + 2
+        let day0: int = doy - dNum / 5 + 1                                // [1, 31]
+        var month: int = 0
+        if (mp < 10) { month = mp + 3 } else { month = mp - 9 }
+        var year: int = y
+        if (month <= 2) { year = year + 1 }
+        let out = new List<int>()
+        out.Add(year)
+        out.Add(month)
+        out.Add(day0)
+        return out
+    }
+
+    static int httpDaysFromCivil(year: int, month: int, day: int) {
+        var y: int = year
+        if (month <= 2) { y = y - 1 }
+        var era: int = 0
+        if (y >= 0) { era = y / 400 } else { let yneg: int = y - 399; era = yneg / 400 }
+        let yoe: int = y - era * 400
+        var monthShift: int = 0
+        if (month > 2) { monthShift = month - 3 } else { monthShift = month + 9 }
+        let doyNum: int = 153 * monthShift + 2
+        let doy: int = doyNum / 5 + day - 1
+        let doe: int = yoe * 365 + yoe / 4 - yoe / 100 + doy
+        return era * 146097 + doe - 719468
+    }
+
+    static string httpWeekdayName(i: int) {
+        if (i == 0) { return "Sun" }
+        if (i == 1) { return "Mon" }
+        if (i == 2) { return "Tue" }
+        if (i == 3) { return "Wed" }
+        if (i == 4) { return "Thu" }
+        if (i == 5) { return "Fri" }
+        if (i == 6) { return "Sat" }
+        return "Sun"
+    }
+
+    static string httpMonthName(m: int) {
+        if (m == 1)  { return "Jan" }
+        if (m == 2)  { return "Feb" }
+        if (m == 3)  { return "Mar" }
+        if (m == 4)  { return "Apr" }
+        if (m == 5)  { return "May" }
+        if (m == 6)  { return "Jun" }
+        if (m == 7)  { return "Jul" }
+        if (m == 8)  { return "Aug" }
+        if (m == 9)  { return "Sep" }
+        if (m == 10) { return "Oct" }
+        if (m == 11) { return "Nov" }
+        if (m == 12) { return "Dec" }
+        return "Jan"
+    }
+
+    static int httpMonthNum(name: string) {
+        let m: string = String_Substring(name, 0, 3)
+        if (m == "Jan") { return 1 }
+        if (m == "Feb") { return 2 }
+        if (m == "Mar") { return 3 }
+        if (m == "Apr") { return 4 }
+        if (m == "May") { return 5 }
+        if (m == "Jun") { return 6 }
+        if (m == "Jul") { return 7 }
+        if (m == "Aug") { return 8 }
+        if (m == "Sep") { return 9 }
+        if (m == "Oct") { return 10 }
+        if (m == "Nov") { return 11 }
+        if (m == "Dec") { return 12 }
+        return -1
+    }
 }
 
 // ── Pure-AM helpers (calendar arithmetic + ISO 8601) ──────────
