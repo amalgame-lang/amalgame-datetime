@@ -130,6 +130,55 @@ public class DateTime {
     public static bool IsParseError(nanos: int) {
         return nanos == DateTime.ParseErrorSentinel()
     }
+
+    // ── HTTP-date (RFC 7231 / RFC 1123) ──────────────────────────────
+    // FormatHttpDate(epochSecs) → "Sun, 06 Jun 2026 08:49:37 GMT", for
+    // HTTP Last-Modified / Expires / Date headers (also handy for cookie
+    // Expires + SMTP). Takes whole SECONDS since the epoch — matches
+    // filesystem mtime granularity (FormatIso takes nanos).
+    public static string FormatHttpDate(epochSecs: int) {
+        var secs: int = epochSecs
+        var days: int = secs / 86400
+        var sod:  int = secs - days * 86400
+        if (sod < 0) { days = days - 1; sod = sod + 86400 }
+        let ymd: List<int> = DateTimeUtil.CivilFromDays(days)
+        let hour:   int = sod / 3600
+        let minute: int = (sod / 60) % 60
+        let second: int = sod % 60
+        // 1970-01-01 was a Thursday; with Sun=0 that's index 4.
+        let wdRaw: int = days + 4
+        var wd: int = wdRaw % 7
+        if (wd < 0) { wd = wd + 7 }
+        let dow: string = DateTimeUtil.WeekdayName(wd)
+        let mon: string = DateTimeUtil.MonthName(ymd.Get(1))
+        let dS:  string = DateTimeUtil.PadZero(String_FromInt(ymd.Get(2)), 2)
+        let yS:  string = DateTimeUtil.PadZero(String_FromInt(ymd.Get(0)), 4)
+        let hS:  string = DateTimeUtil.PadZero(String_FromInt(hour), 2)
+        let miS: string = DateTimeUtil.PadZero(String_FromInt(minute), 2)
+        let sS:  string = DateTimeUtil.PadZero(String_FromInt(second), 2)
+        return dow + ", " + dS + " " + mon + " " + yS + " " + hS + ":" + miS + ":" + sS + " GMT"
+    }
+
+    // ParseHttpDate(s) → epoch SECONDS, or -1 on malformation. Accepts
+    // the RFC 1123 form ("Wkd, DD Mon YYYY HH:MM:SS GMT") every modern
+    // client sends for If-Modified-Since. Legacy RFC 850 / asctime forms
+    // are rejected (-1) in v1.
+    public static int ParseHttpDate(s: string) {
+        let toks: List<string> = String_Split(String_Trim(s), " ")
+        if (toks.Count() < 5) { return -1 }
+        // toks = ["Wkd,", "DD", "Mon", "YYYY", "HH:MM:SS", ("GMT")]
+        let day:  int = String_ToInt(toks.Get(1))
+        let mon:  int = DateTimeUtil.MonthNum(toks.Get(2))
+        let year: int = String_ToInt(toks.Get(3))
+        if (mon < 1) { return -1 }
+        let tparts: List<string> = String_Split(toks.Get(4), ":")
+        if (tparts.Count() < 3) { return -1 }
+        let hh: int = String_ToInt(tparts.Get(0))
+        let mm: int = String_ToInt(tparts.Get(1))
+        let ss: int = String_ToInt(tparts.Get(2))
+        let days: int = DateTimeUtil.DaysFromCivil(year, mon, day)
+        return days * 86400 + hh * 3600 + mm * 60 + ss
+    }
 }
 
 // ── Pure-AM helpers (calendar arithmetic + ISO 8601) ──────────
@@ -389,6 +438,54 @@ private class DateTimeUtil {
         let days: int = DateTimeUtil.DaysFromCivil(year, month, day)
         let secs: int = days * 86400 + hour * 3600 + minute * 60 + second
         return secs * 1000000000 + fracNs
+    }
+
+    // English weekday abbreviation, Sun=0 … Sat=6.
+    public static string WeekdayName(i: int) {
+        if (i == 0) { return "Sun" }
+        if (i == 1) { return "Mon" }
+        if (i == 2) { return "Tue" }
+        if (i == 3) { return "Wed" }
+        if (i == 4) { return "Thu" }
+        if (i == 5) { return "Fri" }
+        if (i == 6) { return "Sat" }
+        return "Sun"
+    }
+
+    // English month abbreviation, 1=Jan … 12=Dec.
+    public static string MonthName(m: int) {
+        if (m == 1)  { return "Jan" }
+        if (m == 2)  { return "Feb" }
+        if (m == 3)  { return "Mar" }
+        if (m == 4)  { return "Apr" }
+        if (m == 5)  { return "May" }
+        if (m == 6)  { return "Jun" }
+        if (m == 7)  { return "Jul" }
+        if (m == 8)  { return "Aug" }
+        if (m == 9)  { return "Sep" }
+        if (m == 10) { return "Oct" }
+        if (m == 11) { return "Nov" }
+        if (m == 12) { return "Dec" }
+        return "Jan"
+    }
+
+    // Month abbreviation → 1..12, -1 if unrecognised. Matches the
+    // first three characters case-sensitively (HTTP dates are "Jun").
+    public static int MonthNum(name: string) {
+        let m: string = String_Substring(name, 0, 3)
+        if (m == "Jan") { return 1 }
+        if (m == "Feb") { return 2 }
+        if (m == "Mar") { return 3 }
+        if (m == "Apr") { return 4 }
+        if (m == "May") { return 5 }
+        if (m == "Jun") { return 6 }
+        if (m == "Jul") { return 7 }
+        if (m == "Aug") { return 8 }
+        if (m == "Sep") { return 9 }
+        if (m == "Oct") { return 10 }
+        if (m == "Nov") { return 11 }
+        if (m == "Dec") { return 12 }
+        return -1
     }
 }
 

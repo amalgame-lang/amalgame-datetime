@@ -16,7 +16,7 @@
 
 [package]
 name              = "amalgame-datetime"
-version           = "0.2.1"
+version           = "0.2.2"
 license           = "Apache-2.0"
 description       = "Pure-Amalgame datetime facade: Instant + Duration + Stopwatch + ISO 8601."
 authors           = ["Bastien Mouget"]
